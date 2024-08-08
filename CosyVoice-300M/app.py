@@ -5,8 +5,8 @@ sys.path.append('{}/third_party/AcademiCodec'.format(ROOT_DIR))
 sys.path.append('{}/third_party/Matcha-TTS'.format(ROOT_DIR))
 
 from modelscope import snapshot_download
-snapshot_download('speech_tts/speech_kantts_ttsfrd', revision='v1.0.3', allow_file_pattern='ttsfrd-0.3.6-cp38-cp38-linux_x86_64.whl', local_dir='pretrained_models/speech_kantts_ttsfrd')
-os.system('cd pretrained_models/speech_kantts_ttsfrd/ && pip install ttsfrd-0.3.6-cp38-cp38-linux_x86_64.whl')
+# snapshot_download('speech_tts/speech_kantts_ttsfrd', revision='v1.0.3', allow_file_pattern='ttsfrd-0.3.6-cp38-cp38-linux_x86_64.whl', local_dir='pretrained_models/speech_kantts_ttsfrd')
+# os.system('cd pretrained_models/speech_kantts_ttsfrd/ && pip install ttsfrd-0.3.6-cp38-cp38-linux_x86_64.whl')
 os.system('sed -i s@pydantic.typing@typing_extensions@g /opt/conda/lib/python3.8/site-packages/inflect/__init__.py')
 os.system('sed -i s@https://huggingface.co/facebook/audioseal/resolve/main/generator_base.pth@{}@g /opt/conda/lib/python3.8/site-packages/audioseal/cards/audioseal_wm_16bits.yaml'.format(os.path.join(ROOT_DIR, 'pretrained_models/audioseal/generator_base.pth')))
 
