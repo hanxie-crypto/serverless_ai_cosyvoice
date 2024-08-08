@@ -42,8 +42,13 @@ COPY ./CosyVoice-300M /opt/CosyVoice
 # 安装额外的软件包
 RUN apt-get update -y && \
     apt-get install -y sox libsox-dev && \
+    apt-get install -y git unzip git-lfs && \
     rm -rf /var/lib/apt/lists/*
+RUN RUN git lfs install
 RUN mkdir -p pretrained_models
+RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
+
+
 RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M.git pretrained_models/CosyVoice-300M
 RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M-SFT.git pretrained_models/CosyVoice-300M-SFT
 RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M-Instruct.git pretrained_models/CosyVoice-300M-Instruct
