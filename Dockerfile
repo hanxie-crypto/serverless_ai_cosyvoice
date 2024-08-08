@@ -16,9 +16,14 @@ RUN apt-get install -y git unzip git-lfs && \
 RUN git lfs install
 
 # 创建Python环境
-RUN conda create -n cosyvoice python=3.8 -y && \
-    echo "conda activate cosyvoice" >> ~/.bashrc && \
-    source ~/.bashrc
+RUN python -m venv /app/venv
+# 激活虚拟环境
+ENV PATH="/app/venv/bin:$PATH"
+
+# RUN conda create -n cosyvoice python=3.8 -y
+# RUN echo "conda activate cosyvoice" >> ~/.bashrc
+# RUN conda init bash
+
 
 # 安装依赖
 COPY ./CosyVoice-300M/requirements.txt /build/requirements.txt
