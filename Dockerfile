@@ -1,5 +1,4 @@
-# 第一阶段: 构建依赖
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel
 USER root
 ENV ROOT=/cosyvoice
 ENV DEBIAN_FRONTEND=noninteractive
@@ -32,8 +31,8 @@ RUN pip3 install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ 
 RUN mkdir -p pretrained_models
 
 RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M.git ${PRETRAINED_MODELS_DIR}/CosyVoice-300M
-RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M-SFT.git ${PRETRAINED_MODELS_DIR}/CosyVoice-300M-SFT
-RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M-Instruct.git ${PRETRAINED_MODELS_DIR}/CosyVoice-300M-Instruct
+# RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M-SFT.git ${PRETRAINED_MODELS_DIR}/CosyVoice-300M-SFT
+# RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M-Instruct.git ${PRETRAINED_MODELS_DIR}/CosyVoice-300M-Instruct
 RUN git clone https://www.modelscope.cn/speech_tts/speech_kantts_ttsfrd.git ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd
 # 安装特定的模型包
 WORKDIR ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd
