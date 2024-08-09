@@ -1,6 +1,5 @@
 # 第一阶段: 构建依赖
-# FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 USER root
 ENV ROOT=/cosyvoice
 ENV DEBIAN_FRONTEND=noninteractive
@@ -18,24 +17,8 @@ RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
 RUN apt-get update -y
 
 # 安装依赖
-RUN apt-get install -y tzdata && apt-get install python3 python3-pip curl -y
 RUN apt-get install -y git unzip git-lfs
 RUN apt-get install -y sox libsox-dev 
-
-RUN ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-  dpkg-reconfigure -f noninteractive tzdata
-
-ENV NVIDIA_DRIVER_CAPABILITIES compute,graphics,utility
-
-RUN apt-get update && \
-    apt-get install -y nvidia-container-toolkit-base && apt-get install libgl1-mesa-glx -y  && \
-    apt-get install -y libglib2.0-0 libsm6 libxrender1 libxext6 libvulkan1 libvulkan-dev vulkan-tools git && apt-get clean
-    
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3 get-pip.py 
-
-RUN git clone https://github.com/timdettmers/bitsandbytes.git --depth 1 -b main
-RUN cd bitsandbytes && CUDA_VERSION=117 make cuda11x && python3 setup.py install
-
 
 
 RUN rm -rf /var/lib/apt/lists/*
@@ -44,7 +27,7 @@ RUN rm -rf /var/lib/apt/lists/*
 RUN git lfs install
 
 # 安装依赖
-COPY ./CosyVoice-300M /cosyvoice
+COPY ./CosyVoice-300M ${ROOT}
 RUN pip3 install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 RUN mkdir -p pretrained_models
 
