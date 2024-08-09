@@ -20,9 +20,10 @@ from cosyvoice.cli.cosyvoice import CosyVoice
 # cosyvoice= CosyVoice('speech_tts/CosyVoice-300M')
 # cosyvoice_sft= CosyVoice('speech_tts/CosyVoice-300M-SFT')
 # cosyvoice_instruct= CosyVoice('speech_tts/CosyVoice-300M-Instruct')
-cosyvoice= CosyVoice('/cosyvoice/pretrained_models/CosyVoice-300M')
-cosyvoice_sft= CosyVoice('/cosyvoice/pretrained_models/CosyVoice-300M-SFT')
-cosyvoice_instruct= CosyVoice('/cosyvoice/pretrained_models/CosyVoice-300M-Instruct')
+model_path = os.environ.get('PRETRAINED_MODELS_DIR', '/cosyvoice/pretrained_models')
+cosyvoice= CosyVoice(f'{model_path}/CosyVoice-300M')
+cosyvoice_sft= CosyVoice(f'{model_path}/CosyVoice-300M-SFT')
+cosyvoice_instruct= CosyVoice(f'{model_path}/CosyVoice-300M-Instruct')
 
 example_tts_text = ["我们走的每一步，都是我们策略的一部分；你看到的所有一切，包括我此刻与你交谈，所做的一切，所说的每一句话，都有深远的含义。",
                     "那位喜剧演员真有才，[laughter]一开口就让全场观众爆笑。",
