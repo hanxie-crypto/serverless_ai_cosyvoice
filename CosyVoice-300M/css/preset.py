@@ -2,7 +2,7 @@ import random
 
 import gradio as gr
 from css.utils import *
-
+from cosyvoice.cli.cosyvoice import CosyVoice
 
 # 预置语音生成
 def preset():
@@ -14,13 +14,19 @@ def preset():
 
     def generate_audio(_sound_radio, _synthetic_input_textbox, _seed):
         print(_sound_radio, _synthetic_input_textbox, _seed)
+        global cosyvoice_sft  # 声明为全局变量
+        global cosyvoice_instruct
         if _synthetic_input_textbox == '':
             gr.Warning('合成文本为空，您是否忘记输入合成文本？')
             return (target_sr, default_data)
         set_all_random_seed(_seed)
         if use_instruct(_synthetic_input_textbox):
+            if cosyvoice_instruct == None:
+                cosyvoice_instruct = CosyVoice(f'{model_path}/CosyVoice-300M-Instruct')
             model = cosyvoice_instruct
         else:
+            if cosyvoice_sft == None:
+                cosyvoice_sft = CosyVoice(f'{model_path}/CosyVoice-300M-SFT')
             model = cosyvoice_sft
         output = model.inference_sft(_synthetic_input_textbox, _sound_radio)
         audio_data = postprocess(output['tts_speech']).numpy().flatten()

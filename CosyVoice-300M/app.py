@@ -7,13 +7,15 @@ sys.path.append('{}/third_party/Matcha-TTS'.format(ROOT_DIR))
 # from modelscope import snapshot_download
 # snapshot_download('speech_tts/speech_kantts_ttsfrd', revision='v1.0.3', allow_file_pattern='ttsfrd-0.3.6-cp38-cp38-linux_x86_64.whl', local_dir='pretrained_models/speech_kantts_ttsfrd')
 # os.system('cd pretrained_models/speech_kantts_ttsfrd/ && pip install ttsfrd-0.3.6-cp38-cp38-linux_x86_64.whl')
-os.system('sed -i s@pydantic.typing@typing_extensions@g /opt/conda/lib/python3.8/site-packages/inflect/__init__.py')
-os.system('sed -i s@https://huggingface.co/facebook/audioseal/resolve/main/generator_base.pth@{}@g /opt/conda/lib/python3.8/site-packages/audioseal/cards/audioseal_wm_16bits.yaml'.format(os.path.join(ROOT_DIR, 'pretrained_models/audioseal/generator_base.pth')))
+# os.system('sed -i s@pydantic.typing@typing_extensions@g /opt/conda/lib/python3.8/site-packages/inflect/__init__.py')
+# os.system('sed -i s@https://huggingface.co/facebook/audioseal/resolve/main/generator_base.pth@{}@g /opt/conda/lib/python3.8/site-packages/audioseal/cards/audioseal_wm_16bits.yaml'.format(os.path.join(ROOT_DIR, 'pretrained_models/audioseal/generator_base.pth')))
 
 import gradio as gr
 from css.advanced import advanced
 from css.custom import custom
 from css.preset import preset
+from css.utils import *
+
 
 audio_mode_choices = [('预置语音生成', 'preset'), ('定制语音生成（复刻录制声音）', 'custom'),
                       ('高级语音生成（自然语言控制）', 'advanced')]
@@ -26,10 +28,35 @@ def on_audio_mode_change(_audio_mode_radio):
         advanced_layout: gr.update(visible=_audio_mode_radio == 'advanced')
     }
 
-
 custom_css = """
 .full-height {
     height: 100%;
+}
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  bottom: 100%; /* The tooltip will be above the element */
+  left: 50%;
+  margin-left: -60px; /* Use half of the width (120/2 = 60), to center the tooltip */
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
 }
 """
 
@@ -54,5 +81,11 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
         fn=on_audio_mode_change,
         inputs=[audio_mode_radio],
         outputs=[preset_layout, custom_layout, advanced_layout])
+
+# 获取文件上传路径,方便后续挂载Nas的时候使用
+file_upload_path = os.getenv('GRADIO_TEMP_DIR', '/tmp/gradio')
+if not os.path.exists(file_upload_path):
+    os.makedirs(file_upload_path)
+
 
 demo.queue().launch(server_name='0.0.0.0',server_port=50000)

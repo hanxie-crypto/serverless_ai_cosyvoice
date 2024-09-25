@@ -1,0 +1,89 @@
+FROM ubuntu
+USER root
+ENV ROOT=/cosyvoice
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONPATH=${ROOT}:$PYTHONPATH
+ENV PORT=50000
+ENV PRETRAINED_MODELS_DIR=${ROOT}/pretrained_models
+LABEL MAINTAINER="hanxie"
+RUN mkdir -p ${ROOT}
+WORKDIR ${ROOT}
+
+# 更新源列表
+RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
+RUN apt-get update -y
+RUN cat /etc/apt/sources.list
+# 安装依赖
+RUN apt-get install -y wget libffi-dev libglib2.0-dev git unzip git-lfs ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
+
+# 安装Git LFS
+RUN git lfs install
+
+# 安装conda
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+# 使安装脚本可执行
+RUN chmod +x miniconda.sh
+# 安装 Miniconda3
+RUN ./miniconda.sh -b -p /opt/conda
+# 清理缓存
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# 设置环境变量
+ENV PATH="/opt/conda/bin:$PATH"
+RUN conda --version
+
+# 创建并激活conda环境
+RUN conda create -n cosyvoice python=3.8
+
+SHELL ["conda","init","bash"]
+SHELL ["source","~/.bashrc"]
+SHELL ["conda", "run", "-n", "cosyvoice", "/bin/bash", "-c"]
+
+# 安装依赖
+COPY ./CosyVoice-300M $ROOT
+
+RUN pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com && rm -rf `pip cache dir`
+
+
+# 安装额外的软件包
+RUN apt-get install -y sed  && \
+    rm -rf /var/lib/apt/lists/*
+
+# 修改audioseal的路径，使用本地模块
+RUN sed -i "s@https://huggingface.co/facebook/audioseal/resolve/main/generator_base.pth@${ROOT}/pretrained_models/audioseal/generator_base.pth@g" /opt/conda/envs/cosyvoice/lib/python3.8/site-packages/audioseal/cards/audioseal_wm_16bits.yaml
+
+# 安装特定的模型包
+RUN rm -rf ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd
+RUN git clone https://www.modelscope.cn/speech_tts/speech_kantts_ttsfrd.git ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd && \
+    cd ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd && \
+    unzip resource.zip -d . && \
+    pip install ttsfrd-0.3.6-cp38-cp38-linux_x86_64.whl && \
+    rm -rf resource.zip && \
+    rm -rf ttsfrd-0.3.9-cp310-cp310-linux_x86_64.whl && \
+    rm -rf ttsfrd_dependency-0.1-py3-none-any.whl && \
+    rm -rf ttsfrd-0.3.9-cp38-cp38-linux_x86_64.whl
+
+#RUN cd ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd && \
+#    unzip resource.zip -d .
+
+#RUN cd ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd && \
+#    pip install ttsfrd-0.3.6-cp38-cp38-linux_x86_64.whl
+
+
+#RUN rm -rf resource.zip && \
+#    rm -rf ttsfrd-0.3.9-cp310-cp310-linux_x86_64.whl && \
+#    rm -rf ttsfrd_dependency-0.1-py3-none-any.whl && \
+#    rm -rf ttsfrd-0.3.9-cp38-cp38-linux_x86_64.whl
+#RUN conda clean --packages --yes && \
+#    conda clean --tarballs --yes && \
+#    conda clean --index-cache --yes
+#RUN rm -rf ${ROOT}/pretrained_models/CosyVoice-300M-Instruct/flow.pt && \
+#    rm -rf ${ROOT}/pretrained_models/CosyVoice-300M-Instruct/llm.pt && \
+#    rm -rf ${ROOT}/pretrained_models/CosyVoice-300M-Instruct/speech_tokenizer_v1.onnx
+RUN export PYTHONPATH=third_party/AcademiCodec:third_party/Matcha-TTS
+# 设置启动命令
+WORKDIR ${ROOT}
+
+
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "cosyvoice", "python", "app.py", "--port", "50000", "--model_dir", "${PRETRAINED_MODELS_DIR}/CosyVoice-300M"]

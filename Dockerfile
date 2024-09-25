@@ -1,45 +1,76 @@
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel
+FROM ubuntu:22.04
 USER root
 ENV ROOT=/cosyvoice
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONPATH=${ROOT}:$PYTHONPATH
 ENV PORT=50000
+ENV PRETRAINED_MODELS_DIR=${ROOT}/pretrained_models
 LABEL MAINTAINER="hanxie"
-
 RUN mkdir -p ${ROOT}
-
 WORKDIR ${ROOT}
 
-ENV PRETRAINED_MODELS_DIR=${ROOT}/pretrained_models
 # 更新源列表
 RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
 RUN apt-get update -y
+RUN cat /etc/apt/sources.list
 
 # 安装依赖
-RUN apt-get install -y git unzip git-lfs
-RUN apt-get install -y sox libsox-dev 
-
-
-RUN rm -rf /var/lib/apt/lists/*
-
+RUN apt-get install -y wget libffi-dev libglib2.0-dev git unzip git-lfs ffmpeg plocate libcufft10 && \
+   rm -rf /var/lib/apt/lists/*
+# 
+RUN ffmpeg -version
+RUN ldconfig -p | grep libavdevice.so
 # 安装Git LFS
 RUN git lfs install
 
-# 安装依赖
-COPY ./CosyVoice-300M ${ROOT}
-RUN pip3 install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
-RUN mkdir -p pretrained_models
+# 安装conda
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+# 使安装脚本可执行
+RUN chmod +x miniconda.sh
+# 安装 Miniconda3
+RUN ./miniconda.sh -b -p /opt/conda
+# 清理缓存
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# 设置环境变量
+ENV PATH="/opt/conda/bin:$PATH"
+RUN conda --version
 
-RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M.git ${PRETRAINED_MODELS_DIR}/CosyVoice-300M
-# RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M-SFT.git ${PRETRAINED_MODELS_DIR}/CosyVoice-300M-SFT
-# RUN git clone https://www.modelscope.cn/speech_tts/CosyVoice-300M-Instruct.git ${PRETRAINED_MODELS_DIR}/CosyVoice-300M-Instruct
-RUN git clone https://www.modelscope.cn/speech_tts/speech_kantts_ttsfrd.git ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd
+# 创建并激活conda环境
+RUN conda create -n cosyvoice python=3.8
+
+SHELL ["conda","init","bash"]
+SHELL ["source","~/.bashrc"]
+SHELL ["conda", "run", "-n", "cosyvoice", "/bin/bash", "-c"]
+
+# 复制工程文件
+COPY ./CosyVoice-300M $ROOT
+# 复制模型文件
+COPY ./pretrained_models $ROOT/pretrained_models
+
+RUN pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com && rm -rf `pip cache dir`
+
+
+# 安装额外的软件包
+RUN apt-get install -y sed  && \
+    rm -rf /var/lib/apt/lists/*
+
+# 修改audioseal的路径，使用本地模块
+RUN sed -i "s@https://huggingface.co/facebook/audioseal/resolve/main/generator_base.pth@${ROOT}/pretrained_models/audioseal/generator_base.pth@g" /opt/conda/envs/cosyvoice/lib/python3.8/site-packages/audioseal/cards/audioseal_wm_16bits.yaml
 # 安装特定的模型包
-WORKDIR ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd
-RUN unzip resource.zip -d .
-# RUN pip install ttsfrd-0.3.6-cp38-cp38-linux_x86_64.whl
-RUN pip3 install -U ttsfrd -f https://modelscope.oss-cn-beijing.aliyuncs.com/releases/repo.html
+RUN rm -rf ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd
+RUN git clone https://www.modelscope.cn/speech_tts/speech_kantts_ttsfrd.git ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd && \
+    cd ${PRETRAINED_MODELS_DIR}/speech_kantts_ttsfrd && \
+    unzip resource.zip -d . && \
+    pip install ttsfrd-0.3.6-cp38-cp38-linux_x86_64.whl && \
+    rm -rf resource.zip && \
+    rm -rf ttsfrd-0.3.9-cp310-cp310-linux_x86_64.whl && \
+    rm -rf ttsfrd_dependency-0.1-py3-none-any.whl && \
+    rm -rf ttsfrd-0.3.9-cp38-cp38-linux_x86_64.whl
+
 RUN export PYTHONPATH=third_party/AcademiCodec:third_party/Matcha-TTS
 # 设置启动命令
 WORKDIR ${ROOT}
-CMD ["python3", "app.py", "--port", "50000", "--model_dir", "${PRETRAINED_MODELS_DIR}/CosyVoice-300M"]
+
+COPY ./entrypoint.sh ${ROOT}/entrypoint.sh
+RUN chmod +x ${ROOT}/entrypoint.sh
+ENTRYPOINT ["/cosyvoice/entrypoint.sh"]
